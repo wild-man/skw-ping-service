@@ -1,0 +1,25 @@
+{
+  "envOverrides": {
+    "/iggy/url": "IGGY_URL"
+  },
+  "service": {
+    "name": "skw-ping-service",
+    "rootKey": "01a01500-98d5-71fc-9038-71acb78d61c4"
+  },
+  "iggy": {
+    "url": "iggy://iggy:Secret123!@skw-iggy:3000",
+    "streamPrefix": "api-gate-stream"
+  },
+  "postgres": {
+    "master": {
+      "url": "postgres://skw:password@skw-postgres:5432/skw",
+      "createServiceSchema": true,
+      "setSearchPathByService": true
+    },
+    "slave": {
+      "url": "postgres://skw:password@skw-postgres:5432/skw",
+      "createServiceSchema": false,
+      "setSearchPathByService": true
+    }
+  }
+}
