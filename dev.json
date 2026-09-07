@@ -1,6 +1,7 @@
 {
   "envOverrides": {
-    "/iggy/url": "IGGY_URL"
+    "/iggy/url": "IGGY_URL",
+    "/redis/url": "REDIS_URL"
   },
   "service": {
     "name": "skw-ping-service",
@@ -9,6 +10,9 @@
   "iggy": {
     "url": "iggy://iggy:Secret123!@skw-iggy:3000",
     "streamPrefix": "api-gate-stream"
+  },
+  "redis": {
+    "url": "redis://skw:password@skw-redis:6379"
   },
   "postgres": {
     "master": {

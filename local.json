@@ -10,6 +10,9 @@
     "url": "iggy://iggy:Secret123!@localhost:8081",
     "streamPrefix": "api-gate-stream"
   },
+  "redis": {
+    "url": "redis://skw:password@localhost:6379"
+  },
   "postgres": {
     "master": {
       "url": "postgres://skw:password@localhost:5432/skw",
