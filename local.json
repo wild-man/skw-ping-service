@@ -1,6 +1,7 @@
 {
   "envOverrides": {
-    "/iggy/url": "IGGY_URL"
+    "/iggy/url": "IGGY_URL",
+    "/rabbitmq/url": "RABBITMQ_URL"
   },
   "service": {
     "name": "skw-ping-service",
@@ -12,6 +13,12 @@
   },
   "redis": {
     "url": "redis://skw:password@localhost:6379"
+  },
+  "rabbitmq": {
+    "url": "amqp://rabbitmq:Secret123!@localhost:5672",
+    "queues": [
+      { "name": "ping-task", "prefetch": 10 }
+    ]
   },
   "postgres": {
     "master": {

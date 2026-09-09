@@ -13,6 +13,10 @@ name = "ping-stream-service"
 path = "src/stream.rs"
 
 [[bin]]
+name = "ping-mq-service"
+path = "src/mq.rs"
+
+[[bin]]
 name = "migrate"
 path = "src/migrate.rs"
 
@@ -22,6 +26,7 @@ serde_json = { workspace = true }
 serde_derive = { workspace = true }
 skw-lib-shared = { workspace = true }
 skw-lib-http-protos = { workspace = true }
+skw-lib-task-protos = { workspace = true }
 tokio = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
