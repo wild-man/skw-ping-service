@@ -2,6 +2,7 @@ use skw_lib_http_protos::{
     JsonRpcServiceRequest,
     ping::{RpcMethod, RpcPayload},
 };
+#[allow(unused)]
 use skw_lib_shared::prelude::{
     APP,
     chrono::*,
@@ -25,20 +26,21 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[allow(unused)]
 async fn handle_message(rpc_method: RpcMethod, _meta: RpcRequestMeta, mut redis: ConnectionManager) -> Result<RpcPayload, ServiceHttpError> {
-    debug!("{:?}", rpc_method);
-    debug!("signature:{:?}", _meta);
+    // debug!("{:?}", rpc_method);
+    // debug!("signature:{:?}", _meta);
     match rpc_method {
         RpcMethod::Public {} => Ok(RpcPayload::Public {}),
         RpcMethod::Ping {} => {
-            let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
-                error!("redis incr failed: {e}");
-                ServiceHttpError::InternalServerError
-            })?;
+            // let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
+            //     error!("redis incr failed: {e}");
+            //     ServiceHttpError::InternalServerError
+            // })?;
 
             Ok(RpcPayload::Ping {
                 ts: Utc::now(),
-                count,
+                count: 0,
             })
         }
     }
