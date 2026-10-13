@@ -16,8 +16,7 @@ struct QueueSettings {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let queues: Vec<QueueSettings> =
-        serde_json::from_value(APP.config.expect_value_cloned(RABBITMQ_QUEUES_PATH)).expect("invalid /rabbitmq/queues config");
+    let queues: Vec<QueueSettings> = serde_json::from_value(APP.config.expect_value_cloned(RABBITMQ_QUEUES_PATH)).expect("invalid /rabbitmq/queues config");
 
     let redis = APP.redis.clone().connect().await;
     let redis_conn = redis.inner().expect("bad redis connection");

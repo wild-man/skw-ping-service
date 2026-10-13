@@ -5,7 +5,8 @@
   },
   "service": {
     "name": "skw-ping-service",
-    "rootKey": "01a01500-98d5-71fc-9038-71acb78d61c4"
+    "rootKey": "01a01500-98d5-71fc-9038-71acb78d61c4",
+    "topicTypes": ["open", "public"]
   },
   "iggy": {
     "url": "iggy://iggy:Secret123!@localhost:8081",
