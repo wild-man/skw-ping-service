@@ -1,15 +1,12 @@
 use skw_lib_http_protos::{
     JsonRpcServiceRequest,
-    ping::{RpcPayload, open::RpcMethod},
+    ping::{RpcPayload, open::RpcMethod as RpcMethodOpen, signed::RpcMethod as RpcMethodSigned},
 };
-use skw_lib_shared::{AppError, prelude::iggy::run_service_consumers_all_topic_types};
 
-#[allow(unused)]
 use skw_lib_shared::prelude::{
-    APP,
+    APP, AppError,
     chrono::*,
-    consts::SERVICE_TOPIC_TYPES_PATH,
-    iggy::{RpcRequestMeta, TopicType, run_service_consumer},
+    iggy::{RpcRequestMeta, TopicType, get_config_topic_types, run_service_consumer, run_service_consumers_all_topic_types},
     jsonrpc::ServiceHttpError,
     log::*,
     redis::{AsyncCommands, ConnectionManager},
@@ -20,24 +17,39 @@ async fn main() -> anyhow::Result<()> {
     let redis = APP.redis.clone().connect().await;
     let redis_conn = redis.inner().expect("bad redis connection");
 
-    run_service_consumers_all_topic_types::<JsonRpcServiceRequest<RpcMethod>, _, _, _>(
-        move |rpc_method, meta| handle_open_message(rpc_method, meta, redis_conn.clone()),
-        None,
-        Some(100), //@todo maybe need to set per topic_type
-    )
-    .await?;
+    let topic_types = get_config_topic_types()?;
+
+    if topic_types
+        .iter()
+        .all(|t| t == &TopicType::Open || t == &TopicType::Public)
+    {
+        run_service_consumers_all_topic_types::<JsonRpcServiceRequest<RpcMethodOpen>, _, _, _>(
+            move |rpc_method, meta| handle_open_message(rpc_method, meta, redis_conn.clone()),
+            None,
+            Some(100), //@todo maybe need to set per topic_type
+        )
+        .await?;
+    } else {
+        // only TopicType::Signed can be in topics
+        run_service_consumer::<JsonRpcServiceRequest<RpcMethodSigned>, _, _, _>(
+            move |rpc_method, meta| handle_signed_message(rpc_method, meta, redis_conn.clone()),
+            None,
+            Some(100),
+            TopicType::Signed,
+        )
+        .await?;
+    }
 
     Ok(())
 }
 
-#[allow(unused)]
-async fn handle_open_message(rpc_method: RpcMethod, _meta: RpcRequestMeta, mut redis: ConnectionManager) -> Result<RpcPayload, AppError> {
-    debug!("{:?}", rpc_method);
-    debug!("signature:{:?}", _meta);
+async fn handle_open_message(rpc_method: RpcMethodOpen, _meta: RpcRequestMeta, mut redis: ConnectionManager) -> Result<RpcPayload, AppError> {
+    // debug!("{:?}", rpc_method);
+    // debug!("signature:{:?}", _meta);
 
     match rpc_method {
-        RpcMethod::Public {} => Ok(RpcPayload::Public {}),
-        RpcMethod::PingOpen {} => {
+        RpcMethodOpen::Public {} => Ok(RpcPayload::Public {}),
+        RpcMethodOpen::PingOpen {} => {
             let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
                 error!("redis incr failed: {e}");
                 ServiceHttpError::InternalServerError
@@ -48,9 +60,28 @@ async fn handle_open_message(rpc_method: RpcMethod, _meta: RpcRequestMeta, mut r
                 count,
             })
         }
-        _ => Err(ServiceHttpError::BadRequest.into()),
     }
 }
+
+async fn handle_signed_message(rpc_method: RpcMethodSigned, _meta: RpcRequestMeta, mut redis: ConnectionManager) -> Result<RpcPayload, AppError> {
+    // debug!("{:?}", rpc_method);
+    // debug!("signature:{:?}", _meta);
+
+    match rpc_method {
+        RpcMethodSigned::PingSigned {} => {
+            let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
+                error!("redis incr failed: {e}");
+                ServiceHttpError::InternalServerError
+            })?;
+
+            Ok(RpcPayload::Ping {
+                ts: Utc::now(),
+                count,
+            })
+        }
+    }
+}
+
 /*
 RpcMethod::PingSigned {} => {
     let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
