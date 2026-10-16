@@ -6,14 +6,12 @@ use skw_lib_http_protos::{
 use skw_lib_shared::prelude::{
     APP, AppError,
     chrono::*,
-    iggy::{RpcRequestMeta, TopicType, get_config_topic_types, run_service_consumer, run_service_consumers_all_topic_types},
-    jsonrpc::ServiceHttpError,
-    log::*,
+    iggy::{RpcRequestMeta, SkwTopicType, get_config_topic_types, run_service_consumer, run_service_consumers_all_topic_types},
     redis::{AsyncCommands, ConnectionManager},
 };
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), AppError> {
     let redis = APP.redis.clone().connect().await;
     let redis_conn = redis.inner().expect("bad redis connection");
 
@@ -21,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
 
     if topic_types
         .iter()
-        .all(|t| t == &TopicType::Open || t == &TopicType::Public)
+        .all(|t| t == &SkwTopicType::Open || t == &SkwTopicType::Public)
     {
         run_service_consumers_all_topic_types::<JsonRpcServiceRequest<RpcMethodOpen>, _, _, _>(
             move |rpc_method, meta| handle_open_message(rpc_method, meta, redis_conn.clone()),
@@ -35,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
             move |rpc_method, meta| handle_signed_message(rpc_method, meta, redis_conn.clone()),
             None,
             Some(100),
-            TopicType::Signed,
+            SkwTopicType::Signed,
         )
         .await?;
     }
@@ -49,17 +47,10 @@ async fn handle_open_message(rpc_method: RpcMethodOpen, _meta: RpcRequestMeta, m
 
     match rpc_method {
         RpcMethodOpen::Public {} => Ok(RpcPayload::Public {}),
-        RpcMethodOpen::PingOpen {} => {
-            let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
-                error!("redis incr failed: {e}");
-                ServiceHttpError::InternalServerError
-            })?;
-
-            Ok(RpcPayload::Ping {
-                ts: Utc::now(),
-                count,
-            })
-        }
+        RpcMethodOpen::PingOpen {} => Ok(RpcPayload::Ping {
+            ts: Utc::now(),
+            count: redis.incr("ping:count", 1).await?,
+        }),
     }
 }
 
@@ -68,31 +59,9 @@ async fn handle_signed_message(rpc_method: RpcMethodSigned, _meta: RpcRequestMet
     // debug!("signature:{:?}", _meta);
 
     match rpc_method {
-        RpcMethodSigned::PingSigned {} => {
-            let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
-                error!("redis incr failed: {e}");
-                ServiceHttpError::InternalServerError
-            })?;
-
-            Ok(RpcPayload::Ping {
-                ts: Utc::now(),
-                count,
-            })
-        }
+        RpcMethodSigned::PingSigned {} => Ok(RpcPayload::Ping {
+            ts: Utc::now(),
+            count: redis.incr("ping:count", 1).await?,
+        }),
     }
 }
-
-/*
-RpcMethod::PingSigned {} => {
-    let count: u64 = redis.incr("ping:count", 1).await.map_err(|e| {
-        error!("redis incr failed: {e}");
-        ServiceHttpError::InternalServerError
-    })?;
-
-    Ok(RpcPayload::Ping {
-        ts: Utc::now(),
-        count,
-    })
-}
-
- */

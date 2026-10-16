@@ -17,7 +17,7 @@ name = "ping-mq-service"
 path = "src/mq.rs"
 
 [[bin]]
-name = "migrate"
+name = "ping-migrate"
 path = "src/migrate.rs"
 
 [dependencies]
@@ -30,7 +30,7 @@ skw-lib-task-protos = { workspace = true }
 tokio = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
+#anyhow = { workspace = true }
 axum = { workspace = true }
 sqlx = { workspace = true }
 ed25519-dalek = { workspace = true }
