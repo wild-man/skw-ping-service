@@ -16,10 +16,12 @@ use skw_lib_shared::prelude::{
 use skw_lib_task_protos::ping::PingTask;
 use skw_ping_service::{PING_TASK_QUEUE, named_queue};
 
+/// how long `PingSlow` waits before replying
+const PING_SLOW_DELAY: Duration = Duration::from_secs(1);
+
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
-    let redis = APP.redis.clone().connect().await;
-    let redis_conn = redis.inner().expect("bad redis connection");
+    let redis_conn = APP.redis.clone().connect().await?.inner();
 
     let topic_types = get_config_topic_types()?;
 
@@ -62,7 +64,8 @@ async fn handle_open_message(rpc_method: RpcMethodOpen, _meta: RpcRequestMeta, m
     }
 }
 
-/// Queues a PingTask for ping-mq-service; the request is answered with a provisional reply only.
+/// Queues a PingTask for ping-mq-service, which sends the final reply; the caller answers with a
+/// provisional one now.
 async fn enqueue_ping(tasks: &RabbitMqPublisher, meta: &RpcRequestMeta) -> Result<(), AppError> {
     let api_key = meta
         .api_key
@@ -104,6 +107,15 @@ async fn handle_signed_message(
             // wait to test that client will get response from rabbitMq consumer
             tokio::time::sleep(Duration::from_secs(5)).await;
             Ok(RpcPayload::PingAccepted {})
+        }
+        RpcMethodSigned::PingSlow {} => {
+            // keeps the request pending, e.g. for the gates' duplicate-request check; handlers run
+            // concurrently (run_service_consumer), so this delays no other request
+            tokio::time::sleep(PING_SLOW_DELAY).await;
+            Ok(RpcPayload::Ping {
+                ts: Utc::now(),
+                count: redis.incr("ping:count", 1).await?,
+            })
         }
     }
 }

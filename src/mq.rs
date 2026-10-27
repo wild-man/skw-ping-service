@@ -4,7 +4,6 @@ use skw_lib_shared::{
         APP, AppError,
         chrono::*,
         iggy::TaskDonePublisher,
-        jsonrpc::SkwServiceStatus,
         log::*,
         rabbitmq::{TaskOutcome, run_task_consumer},
         redis::*,
@@ -16,8 +15,7 @@ use skw_ping_service::{PING_TASK_QUEUE, named_queue};
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
-    let redis = APP.redis.clone().connect().await;
-    let redis_conn = redis.inner().expect("bad redis connection");
+    let redis_conn = APP.redis.clone().connect().await?.inner();
     // let ping_done = TaskDonePublisher::new(&skw_get_task_done_notify_topic_name::<PingTask>()).await?;
 
     // back_topic can be uses directly to inform client that task is ready after task is completed through RabbitMq
@@ -37,7 +35,7 @@ async fn main() -> Result<(), AppError> {
 
 async fn handle_ping_task(task: PingTask, mut redis: ConnectionManager, done: &TaskDonePublisher) -> TaskOutcome {
     match rand::random::<u8>() {
-        0..=u8::MAX => {
+        0..=200 => {
             info!("received ping task: {}", task.message);
 
             let count: u64 = match redis.incr("mq:count", 1).await {
